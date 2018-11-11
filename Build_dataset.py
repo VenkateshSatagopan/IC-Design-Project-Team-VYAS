@@ -8,7 +8,7 @@ import glob
  #Getting current directory
 current_directory=os.getcwd()
 #print(current_directory)
-#Preparing path for data
+'''#Preparing path for data
 data_dir=os.path.join(current_directory+'/Input/chest_xray/')
 
 #data_dir=current_directory+'/input/chest_xray/'
@@ -19,7 +19,7 @@ train_dir = os.path.join(data_dir,"train")
 
 valid_dir= os.path.join(data_dir,"val")
 
-test_dir = os.path.join(data_dir,"test")
+test_dir = os.path.join(data_dir,"test")'''
 
 
 '''def normalize_image( image, axis=None ):
@@ -33,12 +33,6 @@ def wrap_int64(value):
 
 def wrap_bytes(value):
     return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
-
- # Define path for Tensorflow record
-path_tfrecords_train = os.path.join(current_directory,"tf-records/train.tfrecords")
-path_tfrecords_valid = os.path.join(current_directory,"tf-records/valid.tfrecords")
-path_tfrecords_test = os.path.join(current_directory,"tf-records/test.tfrecords")
-
 
 def print_progress(count, total):
     # Percentage completion.
@@ -116,14 +110,5 @@ def prepare_train_data(train_dir,tf_record_path):
  assert num_images==count
  return count
 
-train_images_count=prepare_train_data(train_dir,path_tfrecords_train)
-valid_images_count=prepare_train_data(valid_dir,path_tfrecords_valid)
-test_images_count=prepare_train_data(test_dir,path_tfrecords_test)
 
-
-
-
-print("\n No of train images "+str(train_images_count))
-print("\n No of valid images "+str(valid_images_count))
-print("\n No of test images "+str(test_images_count))
 
