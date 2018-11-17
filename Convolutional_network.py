@@ -24,7 +24,28 @@ def relu(x):
 def maxpool(x,filter_size=2):
     return tf.nn.max_pool(x,ksize=[1,filter_size,filter_size,1],strides=[1,filter_size,filter_size,1],padding='SAME')
 
-def conv2net_layer(x,data_dict,name=None,max_pool=False):
+'''def conv2net_layer(x,data_dict,name=None,max_pool=False):
+
+
+         weights = tf.get_variable( name='weights',
+                                   dtype=tf.float32,
+                                   initializer=tf.Variable( tf.constant(data_dict[name][0],
+                                                                         name="weights" ) ) )
+
+        biases = tf.get_variable( name='biases',
+                                  dtype=tf.float32,
+                                  initializer=tf.Variable( tf.constant(data_dict[ name ][ 1 ],
+                                                                        name="biases" ) ) )
+        weights=data_dict[name][0]
+        biases=data_dict[name][1]
+        conv_layer_1_output=conv2d(x,weights,biases)
+        conv_layer_1_relu=relu(conv_layer_1_output)
+        if max_pool:
+         conv_layer_1_relu = maxpool(conv_layer_1_relu, 2 )
+
+        return conv_layer_1_relu'''
+
+def conv2net_layer(x,weights,biases,max_pool=False):
 
 
         ''' weights = tf.get_variable( name='weights',
@@ -36,8 +57,8 @@ def conv2net_layer(x,data_dict,name=None,max_pool=False):
                                   dtype=tf.float32,
                                   initializer=tf.Variable( tf.constant(data_dict[ name ][ 1 ],
                                                                         name="biases" ) ) )'''
-        weights=data_dict[name][0]
-        biases=data_dict[name][1]
+        #weights=data_dict[name][0]
+        #biases=data_dict[name][1]
         conv_layer_1_output=conv2d(x,weights,biases)
         conv_layer_1_relu=relu(conv_layer_1_output)
         if max_pool:

@@ -7,6 +7,7 @@ from scipy import misc
 import glob
 import random
 import h5py
+import logging
 from Build_dataset import *
 from Convolutional_network import *
 
@@ -53,6 +54,25 @@ train_images_count=5216
 print("\n No of valid images "+str(valid_images_count))
 #print("\n No of test images "+str(test_images_count))
 
+weights_layer_1={
+'wc1': tf.Variable( tf.random_normal( shape=[ 3, 3, 3, 64 ], stddev=0.01, mean=0.0 ), tf.float32 )
+}
+
+
+biases_layer_1 = {
+    'bc1': tf.Variable( tf.random_normal( shape=[ 64 ], stddev=0.01, mean=0.0 ), tf.float32 )
+    
+    }
+
+weights_layer_2 = {
+'wc1': tf.Variable( tf.random_normal( shape=[ 3, 3, 64, 64 ], stddev=0.01, mean=0.0 ), tf.float32 )
+}
+
+
+biases_layer_2 = {
+    'bc1': tf.Variable( tf.random_normal( shape=[ 64 ], stddev=0.01, mean=0.0 ), tf.float32 )
+    
+    }
 
 weights_layer_3 = {
     'wc1': tf.Variable( tf.random_normal( shape=[ 3, 3, 64, 1 ], stddev=0.01, mean=0.0 ), tf.float32 ),
@@ -96,8 +116,24 @@ biases_layer_5 = {
     'bc3': tf.Variable( tf.random_normal( shape=[ 512 ], stddev=0.01, mean=0.0 ), tf.float32 ),
     }
 
+
+weights_layer_5_1 = {
+    'wc1': tf.Variable( tf.random_normal( shape=[ 3, 3, 512, 1 ], stddev=0.01, mean=0.0 ), tf.float32 ),
+    'wc2': tf.Variable( tf.random_normal( shape=[ 1, 1, 512, 512 ], stddev=0.01, mean=0.0 ), tf.float32 ),
+    #'wc3': tf.Variable( tf.random_normal( shape=[ 3, 3, 512, 1 ], stddev=0.01, mean=0.0 ), tf.float32 ),
+    #'wc4': tf.Variable( tf.random_normal( shape=[ 1, 1, 512,512 ], stddev=0.01, mean=0.0 ), tf.float32 ),
+    #'wc5': tf.Variable( tf.random_normal( shape=[ 3, 3, 512,1 ], stddev=0.01, mean=0.0 ), tf.float32 ),
+    #'wc6': tf.Variable( tf.random_normal( shape=[ 1, 1, 512,512 ], stddev=0.01, mean=0.0 ), tf.float32 )
+    }
+
+biases_layer_5_1 = {
+    'bc1': tf.Variable( tf.random_normal( shape=[ 512 ], stddev=0.01, mean=0.0 ), tf.float32 ),
+    #'bc2': tf.Variable( tf.random_normal( shape=[ 512 ], stddev=0.01, mean=0.0 ), tf.float32 ),
+    #'bc3': tf.Variable( tf.random_normal( shape=[ 512 ], stddev=0.01, mean=0.0 ), tf.float32 ),
+    }
+
 weights_layer_6={
-    'wc1': tf.Variable( tf.random_normal( shape=[14*14*512,1024], stddev=0.01, mean=0.0 ), tf.float32 ),
+    'wc1': tf.Variable( tf.random_normal( shape=[7*7*512,1024], stddev=0.01, mean=0.0 ), tf.float32 ),
     'wc2': tf.Variable( tf.random_normal( shape=[1024,512 ], stddev=0.01, mean=0.0 ), tf.float32 ),
     'wc3': tf.Variable( tf.random_normal( shape=[ 512,1], stddev=0.01, mean=0.0 ), tf.float32 )
 
@@ -111,9 +147,9 @@ biases_layer_6 = {
 
 # No of parameters
 num_parallel_calls = 4  # number of threads
-batch_size = 16
-no_epochs=1
-learning_rate=0.0001
+batch_size = 8
+no_epochs=5
+learning_rate=0.00005
 
 
 def read_and_decode(tf_record_file):
@@ -168,7 +204,7 @@ valid_train_dataset = (tf.data.TFRecordDataset(path_tfrecords_valid)
            #.apply(tf.contrib.data.unbatch())
            #.shuffle( buffer_size=buffer_size, seed=random_number_1 )  # step 4
            #.repeat(2)
-           .batch(valid_images_count)  # step 5
+           .batch(batch_size)  # step 5
            .prefetch(1)  # step 6: make sure you always have one batch ready to serve
            )
 iterator_val = valid_train_dataset.make_one_shot_iterator()
@@ -185,15 +221,18 @@ image_val,label_val = iterator_val.get_next()
     print(lab)'''
 
 #np.savez_compressed('/home/venkatesh/Desktop/Lecture_Materials/Advanced_IC_Design/project/vgg16_weights.npz')
-weight_file="vgg16.npy"
+#weight_file="vgg16.npy"
 #weights = np.load(weight_file)
-data = np.load(weight_file, encoding='latin1').item()
+#data = np.load(weight_file, encoding='latin1').item()
 
 
 
 
-temp=conv2net_layer(image,data,name='conv1_1',max_pool=False)
-temp1=conv2net_layer(temp,data,name='conv1_2',max_pool=True)
+#temp=conv2net_layer(image,data,name='conv1_1',max_pool=False)
+#temp1=conv2net_layer(temp,data,name='conv1_2',max_pool=True)
+temp=conv2net_layer(image,weights_layer_1['wc1'],biases_layer_1['bc1'],max_pool=False)
+temp1=conv2net_layer(temp,weights_layer_2['wc1'],biases_layer_2['bc1'],max_pool=True)
+#temp1=conv2net_layer(temp,data,name='conv1_2',max_pool=True)
 temp2=seperable_conv_layer(temp1,weights_layer_3['wc1'],weights_layer_3['wc2'],biases_layer_3['bc1'],max_pool=False)
 temp3=seperable_conv_layer(temp2,weights_layer_3['wc3'],weights_layer_3['wc4'],biases_layer_3['bc2'],max_pool=True)
 temp4=seperable_conv_layer_bn(temp3,weights_layer_4['wc1'],weights_layer_4['wc2'],biases_layer_4['bc1'],max_pool=False,is_train=True)
@@ -203,8 +242,15 @@ temp7=seperable_conv_layer_bn(temp6,weights_layer_5['wc1'],weights_layer_5['wc2'
 temp8=seperable_conv_layer_bn(temp7,weights_layer_5['wc3'],weights_layer_5['wc4'],biases_layer_5['bc2'],max_pool=False,is_train=True)
 temp9=seperable_conv_layer(temp8,weights_layer_5['wc5'],weights_layer_5['wc6'],biases_layer_5['bc3'],max_pool=True)
 
+# Newly added function##
+
+temp7_1=seperable_conv_layer(temp9,weights_layer_5_1['wc1'],weights_layer_5_1['wc2'],biases_layer_5_1['bc1'],max_pool=True)
+#temp8_1=seperable_conv_layer_bn(temp7_1,weights_layer_5_1['wc3'],weights_layer_5_1['wc4'],biases_layer_5_1['bc2'],max_pool=False,is_train=True)
+#temp9_1=seperable_conv_layer(temp8_1,weights_layer_5_1['wc5'],weights_layer_5_1['wc6'],biases_layer_5_1['bc3'],max_pool=True)
+
+
 #Fully connected_layer
-temp10=fully_connected_layer(temp9,weights_layer_6['wc1'],biases_layer_6['bc1'],use_relu=True)
+temp10=fully_connected_layer(temp7_1,weights_layer_6['wc1'],biases_layer_6['bc1'],use_relu=True)
 temp10_drop=tf.nn.dropout(temp10,keep_prob=0.7)
 temp11=fully_connected_layer(temp10_drop,weights_layer_6['wc2'],biases_layer_6['bc2'],use_relu=True)
 temp11_drop=tf.nn.dropout(temp11,keep_prob=0.5)
@@ -217,8 +263,14 @@ label=tf.reshape(label,[1,batch_size])
 
 prediction=tf.sigmoid(output_layer_transpose)
 predicted_class=tf.greater_equal(prediction,0.5)
-cross_entropy=tf.nn.weighted_cross_entropy_with_logits(logits=prediction,targets=label,pos_weight=2.7078966)
-loss=tf.reduce_mean(cross_entropy,name='loss')
+
+# Newly added here
+#cross_entropy=tf.nn.weighted_cross_entropy_with_logits(logits=prediction,targets=label,pos_weight=2.7078966)
+#cross_entropy=tf.nn.weighted_cross_entropy_with_logits(logits=prediction,targets=label,pos_weight=1.0)
+#cross_entropy=tf.nn.weighted_cross_entropy_with_logits(logits=prediction,targets=label,pos_weight=0.49773913043)
+#loss=tf.reduce_mean(cross_entropy,name='loss')
+
+loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels=label,logits=output_layer_transpose),name='loss')
 optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate, name='Adam-op')
 global_step_layer_1 = tf.train.get_or_create_global_step()
 with tf.control_dependencies( tf.get_collection( tf.GraphKeys.UPDATE_OPS ) ):
@@ -226,9 +278,14 @@ with tf.control_dependencies( tf.get_collection( tf.GraphKeys.UPDATE_OPS ) ):
 correct = tf.equal(predicted_class,tf.equal(label,1))
 accuracy = tf.reduce_mean( tf.cast(correct, 'float') )
 
+
+
 #validation
-temp_val=conv2net_layer(image_val,data,name='conv1_1',max_pool=False)
-temp1_val=conv2net_layer(temp_val,data,name='conv1_2',max_pool=True)
+#temp_val=conv2net_layer(image_val,data,name='conv1_1',max_pool=False)
+#temp1_val=conv2net_layer(temp_val,data,name='conv1_2',max_pool=True)
+
+temp_val=conv2net_layer(image_val,weights_layer_1['wc1'],biases_layer_1['bc1'],max_pool=False)
+temp1_val=conv2net_layer(temp_val,weights_layer_2['wc1'],biases_layer_2['bc1'],max_pool=True)
 temp2_val=seperable_conv_layer(temp1_val,weights_layer_3['wc1'],weights_layer_3['wc2'],biases_layer_3['bc1'],max_pool=False)
 temp3_val=seperable_conv_layer(temp2_val,weights_layer_3['wc3'],weights_layer_3['wc4'],biases_layer_3['bc2'],max_pool=True)
 temp4_val=seperable_conv_layer_bn(temp3_val,weights_layer_4['wc1'],weights_layer_4['wc2'],biases_layer_4['bc1'],max_pool=False,is_train=False)
@@ -237,24 +294,36 @@ temp6_val=seperable_conv_layer(temp5_val,weights_layer_4['wc5'],weights_layer_4[
 temp7_val=seperable_conv_layer_bn(temp6_val,weights_layer_5['wc1'],weights_layer_5['wc2'],biases_layer_5['bc1'],max_pool=False,is_train=False)
 temp8_val=seperable_conv_layer_bn(temp7_val,weights_layer_5['wc3'],weights_layer_5['wc4'],biases_layer_5['bc2'],max_pool=False,is_train=False)
 temp9_val=seperable_conv_layer(temp8_val,weights_layer_5['wc5'],weights_layer_5['wc6'],biases_layer_5['bc3'],max_pool=True)
-temp10_val=fully_connected_layer(temp9_val,weights_layer_6['wc1'],biases_layer_6['bc1'],use_relu=True)
+# Newly added function
+temp7_val_1=seperable_conv_layer(temp9_val,weights_layer_5_1['wc1'],weights_layer_5_1['wc2'],biases_layer_5_1['bc1'],max_pool=True)
+#temp8_val_1=seperable_conv_layer_bn(temp7_val_1,weights_layer_5_1['wc3'],weights_layer_5_1['wc4'],biases_layer_5_1['bc2'],max_pool=False,is_train=False)
+#temp9_val_1=seperable_conv_layer(temp8_val_1,weights_layer_5_1['wc5'],weights_layer_5_1['wc6'],biases_layer_5_1['bc3'],max_pool=True)
+####
+
+
+
+temp10_val=fully_connected_layer(temp7_val_1,weights_layer_6['wc1'],biases_layer_6['bc1'],use_relu=True)
 temp10_drop_val=tf.nn.dropout(temp10_val,keep_prob=0.7)
 temp11_val=fully_connected_layer(temp10_drop_val,weights_layer_6['wc2'],biases_layer_6['bc2'],use_relu=True)
 temp11_drop_val=tf.nn.dropout(temp11_val,keep_prob=0.5)
 output_layer_val=fully_connected_layer(temp11_drop_val,weights_layer_6['wc3'],biases_layer_6['bc3'],use_relu=False)
-output_layer_transpose_val=tf.reshape(output_layer_val,[1,16])
-label_val=tf.reshape(label_val,[1,16])
+output_layer_transpose_val=tf.reshape(output_layer_val,[1,batch_size])
+label_val=tf.reshape(label_val,[1,batch_size])
 
 loss_val = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels=label_val,logits=output_layer_transpose_val),name='loss_val')
 prediction_val=tf.sigmoid(output_layer_transpose_val)
 predicted_class_val=tf.greater_equal(prediction_val,0.5)
-correct_val = tf.equal(predicted_class,tf.equal(label_val,1))
+correct_val = tf.equal(predicted_class_val,tf.equal(label_val,1))
 accuracy_val = tf.reduce_mean( tf.cast(correct_val, 'float') )
+#confusion = tf.confusion_matrix(labels=label_val, predictions=prediction_val, num_classes=2)
 best_acc=-1
 step=1
-#model_dir_last="trained_model/last_weights"
-#model_dir_best="trained_model/best_weights"
+best_model_count=1
+model_dir_last="trained_model/last_weights"
+model_dir_best="trained_model/best_weights"
 saver=tf.train.Saver()
+last_saver=tf.train.Saver()
+best_saver=tf.train.Saver(max_to_keep=1)
 init=tf.global_variables_initializer()
 with tf.Session() as sess:
     sess.run(init)
@@ -262,18 +331,36 @@ with tf.Session() as sess:
     #print(lo)
     for i in range(0,train_images_count*no_epochs,batch_size):
      #acc,los=sess.run([accuracy,loss])
-     #if i==step*(train_images_count-16):
+     #
      #if i%32==0:
-     if i%3200==0:     
+     if i%320==0:     
       
       val,lab=sess.run([accuracy_val,loss_val])
-      print(" Step "+str(step)+" completed")
       print("val_acc = "+str(val))
       print("val_los = " + str(lab) )
-      step=step+1
+      #print("confusion matrix = " + str(confusion_matrix))
+      if best_acc<val:
+        best_acc=val
+        best_save_path = os.path.join(model_dir_best, 'best_weights')
+        best_save_path = best_saver.save(sess, best_save_path, global_step=best_model_count)
+        logging.info("- Found new best accuracy, saving in {}".format(best_save_path))
+        best_model_count+=1
+     elif i==step*(train_images_count-batch_size):
+         last_save_path = os.path.join(model_dir_last, 'last_weights')
+         last_saver.save(sess, last_save_path, global_step=step)
+         logging.info("- Epoch completed, model saving in {}".format(last_save_path))
+         #print(" Step "+str(step)+" completed")
+         
+         step=step+1
      else:
          sess.run(train_op_1)
     save_path = saver.save(sess, "trained_model/model")
+
+'''with tf.Session() as sess:
+ sess.run(init)
+ res,lab=sess.run([output_layer_transpose_val,label_val])
+ print(res.shape)
+ print(lab.shape)'''
 
      #print("acc= "+str(acc))
 
