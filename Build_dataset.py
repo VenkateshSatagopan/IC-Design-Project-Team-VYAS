@@ -4,7 +4,9 @@ import numpy as np
 import sys
 import os
 from scipy import misc
+from skimage import transform
 import glob
+import random
  #Getting current directory
 current_directory=os.getcwd()
 #print(current_directory)
@@ -45,7 +47,7 @@ def print_progress(count, total):
     sys.stdout.flush()
 
 
-def prepare_train_data(train_dir,tf_record_path):
+def prepare_train_data(train_dir,tf_record_path,is_train=True):
  #Followed from tutorial https://github.com/Hvass-Labs/TensorFlow-Tutorials/blob/master/18_TFRecords_Dataset_API.ipynb
  #num_images=5216
  normal_cases_dir = os.path.join(train_dir,'NORMAL/*.jpeg')
@@ -62,6 +64,7 @@ def prepare_train_data(train_dir,tf_record_path):
 
  with tf.python_io.TFRecordWriter(tf_record_path) as writer:
    count = 0
+   normal_cases_count=0
    for img in normal_cases:
      print_progress( count=count, total=num_images - 1 )
      im=misc.imread(img)
@@ -84,7 +87,8 @@ def prepare_train_data(train_dir,tf_record_path):
    # Write the serialized data to the TFRecords file.
      writer.write( serialized )
      count += 1
-
+     normal_cases_count+=1
+   pneumonia_cases_count=0
    for img in pneumonia_cases:
        print_progress( count=count, total=num_images - 1 )
        im = misc.imread( img )
@@ -107,7 +111,53 @@ def prepare_train_data(train_dir,tf_record_path):
        # Write the serialized data to the TFRecords file.
        writer.write( serialized )
        count += 1
- assert num_images==count
+       pneumonia_cases_count+=1
+   if is_train:
+    aug_count=len(pneumonia_cases)-len(normal_cases)
+
+    temp_count=0
+    print( "\n Augmentation starts \n" )
+    while(temp_count<aug_count):
+
+     for img in normal_cases:
+       if temp_count==aug_count:
+           break
+       print_progress(count=temp_count, total=aug_count)
+
+       im = misc.imread( img )
+       # Rotate
+
+       im = transform.rotate( im, angle=np.random.uniform( -45, 45 ),
+                               resize=True, mode='constant')
+       # Scale
+       im = transform.rescale( im, scale=np.random.uniform( 0.7, 1.2 ),
+                                mode='constant' )
+
+
+       if len( im.shape ) == 2:
+           im = np.dstack( [ im, im, im ] )
+       im = misc.imresize( im, (224, 224) )
+       if not temp_count:
+           misc.imshow(im)
+       img_bytes = im.tostring()
+       label = 0
+       data = \
+           {
+               'image': wrap_bytes( img_bytes ),
+               'label': wrap_int64( label )
+           }
+       # Wrap the data as TensorFlow Features.
+       feature = tf.train.Features( feature=data )
+       # Wrap again as a TensorFlow Example.
+       example = tf.train.Example( features=feature )
+       # Serialize the data.
+       serialized = example.SerializeToString()
+       # Write the serialized data to the TFRecords file.
+       writer.write( serialized )
+       temp_count+=1
+    count = count + temp_count
+ #assert num_images==count
+
  return count
 
 

@@ -37,7 +37,7 @@ test_dir = os.path.join(data_dir,"test")
 
 path_tfrecords_test = os.path.join(current_directory,"tf-records/test.tfrecords")
 
-test_images_count=prepare_train_data(test_dir,path_tfrecords_test)
+test_images_count=prepare_train_data(test_dir,path_tfrecords_test,is_train=False)
 
 weights_layer_1={
 'wc1': tf.Variable( tf.random_normal( shape=[ 3, 3, 3, 64 ], stddev=0.01, mean=0.0 ), tf.float32 )
@@ -159,6 +159,9 @@ def read_and_decode(tf_record_file):
     label=tf.cast(label,tf.float32)
     return image,label
 
+
+
+
 random_number=random.randint(0,10000)
 
 
@@ -167,7 +170,7 @@ test_train_dataset = (tf.data.TFRecordDataset(path_tfrecords_test)
            #.shuffle(buffer_size=test_images_count,seed=random_number )  # step 1: all the  filenames into the buffer ensures good shuffling
            #.repeat(no_epochs*500)
            .map(read_and_decode, num_parallel_calls=num_parallel_calls )  # step 2
-
+           
            #.map( get_patches_fn, num_parallel_calls=num_parallel_calls )  # step 3
            #.apply( tf.data.experimental.unbatch())  # unbatch the patches we just produced
            #.apply(tf.contrib.data.unbatch())
@@ -215,7 +218,7 @@ saver=tf.train.Saver()
 init=tf.global_variables_initializer()
 with tf.Session() as sess:
     sess.run(init)
-    saver.restore(sess,"trained_model/best_weights/best_weights-4")
+    saver.restore(sess,"trained_model/model")
     acc=[]
     for i in range(0,test_images_count*no_epochs,batch_size):
       val=sess.run([accuracy_test])

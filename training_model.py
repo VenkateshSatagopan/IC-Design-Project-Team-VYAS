@@ -45,15 +45,16 @@ path_tfrecords_train = os.path.join(current_directory,"tf-records/train.tfrecord
 path_tfrecords_valid = os.path.join(current_directory,"tf-records/valid.tfrecords")
 path_tfrecords_test = os.path.join(current_directory,"tf-records/test.tfrecords")
 
-#train_images_count=prepare_train_data(train_dir,path_tfrecords_train)
-valid_images_count=prepare_train_data(valid_dir,path_tfrecords_valid)
-train_images_count=5216
+#train_images_count=prepare_train_data(train_dir,path_tfrecords_train,is_train=True)
+valid_images_count=prepare_train_data(valid_dir,path_tfrecords_valid,is_train=False)
+#test_images_count=prepare_train_data(test_dir,path_tfrecords_test,is_train=False)
+train_images_count=7750
 #test_images_count=prepare_train_data(test_dir,path_tfrecords_test)
 
-#print("\n No of train images "+str(train_images_count))
+print("\n No of train images "+str(train_images_count))
 print("\n No of valid images "+str(valid_images_count))
 #print("\n No of test images "+str(test_images_count))
-
+regularizer = tf.contrib.layers.l2_regularizer(scale=0.005)
 weights_layer_1={
 'wc1': tf.Variable( tf.random_normal( shape=[ 3, 3, 3, 64 ], stddev=0.01, mean=0.0 ), tf.float32 )
 }
@@ -175,13 +176,35 @@ def read_and_decode(tf_record_file):
     label=tf.cast(label,tf.float32)
     return image,label
 
+
+use_random_flip=True
+
+def train_preprocess(image, label, use_random_flip):
+    """Image preprocessing for training.
+    Apply the following operations:
+        - Horizontally flip the image with probability 1/2
+        - Apply random brightness and saturation
+    """
+    if use_random_flip:
+        image = tf.image.random_flip_left_right(image)
+
+    image = tf.image.random_brightness(image, max_delta=32.0 / 255.0)
+    image = tf.image.random_saturation(image, lower=0.5, upper=1.5)
+
+    # Make sure the image is still in [0, 1]
+    image = tf.clip_by_value(image, 0.0, 1.0)
+
+    return image, label
+
+train_fn = lambda image, label: train_preprocess(image, label, use_random_flip)
+
 random_number=random.randint(0,10000)
 
 train_dataset = (tf.data.TFRecordDataset(path_tfrecords_train)
            .shuffle(buffer_size=train_images_count,seed=random_number)  # step 1: all the  filenames into the buffer ensures good shuffling
            .repeat(no_epochs)
            .map(read_and_decode, num_parallel_calls=num_parallel_calls)  # step 2
-
+           #.map(train_fn,num_parallel_calls=num_parallel_calls)
            #.map( get_patches_fn, num_parallel_calls=num_parallel_calls )  # step 3
            #.apply( tf.data.experimental.unbatch())  # unbatch the patches we just produced
            #.apply(tf.contrib.data.unbatch())
@@ -214,11 +237,7 @@ image_val,label_val = iterator_val.get_next()
 #init=tf.global_variables_initializer()
 
 
-'''with tf.Session() as sess:
-    sess.run(init)
-    res,lab=sess.run([image,label])
-    print(res.shape)
-    print(lab)'''
+
 
 #np.savez_compressed('/home/venkatesh/Desktop/Lecture_Materials/Advanced_IC_Design/project/vgg16_weights.npz')
 #weight_file="vgg16.npy"
@@ -271,6 +290,9 @@ predicted_class=tf.greater_equal(prediction,0.5)
 #loss=tf.reduce_mean(cross_entropy,name='loss')
 
 loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels=label,logits=output_layer_transpose),name='loss')
+# Added to improve accuracy according to paper http://jmlr.org/papers/volume15/srivastava14a.old/srivastava14a.pdf
+reg_term = tf.contrib.layers.apply_regularization(regularizer,[weights_layer_1['wc1'],weights_layer_2['wc1'],weights_layer_3['wc1'],weights_layer_3['wc2'],weights_layer_3['wc3'],weights_layer_3['wc4'],weights_layer_4['wc1'],weights_layer_4['wc2'],weights_layer_4['wc3'],weights_layer_4['wc4'],weights_layer_4['wc5'],weights_layer_4['wc6'],weights_layer_5['wc1'],weights_layer_5['wc2'],weights_layer_5['wc3'],weights_layer_5['wc4'],weights_layer_5['wc5'],weights_layer_5['wc6'],weights_layer_5_1['wc1'],weights_layer_5_1['wc2'],weights_layer_6['wc1'],weights_layer_6['wc2'],weights_layer_6['wc3']])
+loss=tf.add(loss,reg_term)
 optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate, name='Adam-op')
 global_step_layer_1 = tf.train.get_or_create_global_step()
 with tf.control_dependencies( tf.get_collection( tf.GraphKeys.UPDATE_OPS ) ):
@@ -333,7 +355,7 @@ with tf.Session() as sess:
      #acc,los=sess.run([accuracy,loss])
      #
      #if i%32==0:
-     if i%320==0:     
+     if i%1000==0:     
       
       val,lab=sess.run([accuracy_val,loss_val])
       print("val_acc = "+str(val))
@@ -362,5 +384,10 @@ with tf.Session() as sess:
  print(res.shape)
  print(lab.shape)'''
 
+'''with tf.Session() as sess:
+    sess.run(init)
+    res,lab=sess.run([image,label])
+    print(res.shape)
+    print(lab)'''
      #print("acc= "+str(acc))
 
